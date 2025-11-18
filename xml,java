@@ -1,0 +1,74 @@
+import java.io.*;
+import java.net.*;
+import java.util.Scanner;
+
+public class RemoteCommandExecutor {
+    public static void main(String[] args) {
+        if (args.length < 3) {
+            showHelp();
+            return;
+        }
+
+        String host = args[0];
+        int port = Integer.parseInt(args[1]);
+        String command = args[2];
+
+        try {
+            executeCommand(host, port, command, null, null);
+        } catch (IOException e) {
+            System.out.println("Authentication required or connection error.");
+            promptForCredentials(host, port, command);
+        }
+    }
+
+    private static void executeCommand(String host, int port, String command, String user, String pass) throws IOException {
+        Socket socket = new Socket(host, port);
+        OutputStream out = socket.getOutputStream();
+        InputStream in = socket.getInputStream();
+
+        // XML request with optional credentials
+        String xmlRequest = "<?xml version='1.0'?>"
+                + "<xmlservice>"
+                + (user != null && pass != null ? "<auth><user>" + user + "</user><pass>" + pass + "</pass></auth>" : "")
+                + "<cmd>" + command + "</cmd>"
+                + "</xmlservice>";
+
+        out.write(xmlRequest.getBytes());
+        out.flush();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+
+        if (response.toString().contains("success")) {
+            System.out.println("Command executed successfully!");
+        } else {
+            System.out.println("Command failed! Response: " + response);
+        }
+
+        socket.close();
+    }
+
+    private static void promptForCredentials(String host, int port, String command) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        try {
+            executeCommand(host, port, command, username, password);
+        } catch (IOException e) {
+            System.out.println("Error during authenticated execution: " + e.getMessage());
+        }
+    }
+
+    private static void showHelp() {
+        System.out.println("Usage: java RemoteCommandExecutor <host> <port> <command>");
+        System.out.println("Example: java RemoteCommandExecutor 192.168.1.100 8475 DSPLIBL");
+        System.out.println("If authentication fails, you will be prompted for username and password.");
+    }
+}
