@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 
-public class RemoteCommandExecutor {
+public class RemoteCommandAPIClient {
     public static void main(String[] args) {
         if (args.length < 3) {
             showHelp();
@@ -13,6 +13,7 @@ public class RemoteCommandExecutor {
         int port = Integer.parseInt(args[1]);
         String command = args[2];
 
+        // Try without credentials first
         try {
             executeCommand(host, port, command, null, null);
         } catch (IOException e) {
@@ -26,7 +27,7 @@ public class RemoteCommandExecutor {
         OutputStream out = socket.getOutputStream();
         InputStream in = socket.getInputStream();
 
-        // XML request with optional credentials
+        // XMLSERVICE request format
         String xmlRequest = "<?xml version='1.0'?>"
                 + "<xmlservice>"
                 + (user != null && pass != null ? "<auth><user>" + user + "</user><pass>" + pass + "</pass></auth>" : "")
@@ -44,9 +45,9 @@ public class RemoteCommandExecutor {
         }
 
         if (response.toString().contains("success")) {
-            System.out.println("Command executed successfully!");
+            System.out.println(" Command executed successfully!");
         } else {
-            System.out.println("Command failed! Response: " + response);
+            System.out.println(" Command failed! Response: " + response);
         }
 
         socket.close();
@@ -67,8 +68,8 @@ public class RemoteCommandExecutor {
     }
 
     private static void showHelp() {
-        System.out.println("Usage: java RemoteCommandExecutor <host> <port> <command>");
-        System.out.println("Example: java RemoteCommandExecutor 192.168.1.100 8475 DSPLIBL");
+        System.out.println("Usage: java RemoteCommandAPIClient <host> <port> <command>");
+        System.out.println("Example: java RemoteCommandAPIClient 192.168.1.100 8475 DSPLIBL");
         System.out.println("If authentication fails, you will be prompted for username and password.");
     }
 }
