@@ -61,7 +61,7 @@ public class RemoteCommandAPIClient {
         if (resp.contains("success") || responseCode == 200) {
             System.out.println("Command executed successfully!");
         } else {
-            System.out.println("Command failed! Response: " + resp);
+            System.out.println(" Command failed! Response: " + resp);
         }
     }
 
