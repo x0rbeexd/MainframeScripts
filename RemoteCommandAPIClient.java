@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Base64;
 
 public class RemoteCommandAPIClient {
     public static void main(String[] args) {
@@ -22,35 +23,46 @@ public class RemoteCommandAPIClient {
     }
 
     private static void executeCommand(String host, int port, String user, String pass, String command) throws IOException {
-        Socket socket = new Socket(host, port);
-        OutputStream out = socket.getOutputStream();
-        InputStream in = socket.getInputStream();
+        String urlString = "http://" + host + ":" + port + "/qxml"; // XMLSERVICE endpoint
+        URL url = new URL(urlString);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "text/xml");
 
-        // XMLSERVICE request format
+        // Basic Auth header
+        String auth = user + ":" + pass;
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+        conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+        // XML payload
         String xmlRequest = "<?xml version='1.0'?>"
                 + "<xmlservice>"
-                + "<auth><user>" + user + "</user><pass>" + pass + "</pass></auth>"
                 + "<cmd>" + command + "</cmd>"
                 + "</xmlservice>";
 
-        out.write(xmlRequest.getBytes());
-        out.flush();
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(xmlRequest.getBytes());
+            os.flush();
+        }
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+        int responseCode = conn.getResponseCode();
+        System.out.println("HTTP Response Code: " + responseCode);
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         StringBuilder response = new StringBuilder();
         String line;
         while ((line = reader.readLine()) != null) {
             response.append(line);
         }
+        reader.close();
 
         String resp = response.toString();
-        if (resp.contains("success")) {
+        if (resp.contains("success") || responseCode == 200) {
             System.out.println("Command executed successfully!");
         } else {
             System.out.println("Command failed! Response: " + resp);
         }
-
-        socket.close();
     }
 
     private static void showHelp() {
